@@ -6,6 +6,14 @@
 **Bắt đầu:** 2026-09-10
 **Mục tiêu:** ứng dụng vào Family Finance (cache pipeline Weaviate, rate limit insight-chat, session/JWT) + đủ chiều sâu cho phỏng vấn senior/fullstack.
 
+# Note progress: Chương 2: Cấu trúc Dữ liệu cơ bản & Nâng cao
+
+- [x] Revise: Why and Strings: `SET`, `GET`, `INCR`, Expiration/TTL
+- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): FIFO 0912
+- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): LIFO 0914
+- [] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): How redis query item in list, index?
+- [] Node event loop and single thread > Redis related?
+
 ---
 
 ## [x] Chương 1: Giới thiệu & Tổng quan
@@ -97,6 +105,8 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [ ] **Thực hành 3:** Session & JWT token management (refresh token store, revoke/blacklist)
 
 **Checkpoint:** Redis chạy thật trong Family Finance: latency pipeline search giảm, router có rate limit, session quản lý qua Redis.
+
+## Chương 7: Vector search > User pref ff
 
 ## **Ghi chú / câu hỏi còn thắc mắc:**
 

@@ -670,3 +670,19 @@ FROM (
 3. Practice all challenge queries
 4. Optimize queries with indexes
 5. Consider additional features (stories, direct messages, notifications)
+
+--
+
+- Done LN: Redis.
+  ---> Too much time: 90m
+
+- Sum this week:
+  > Evals
+  > NestJs LN
+  > Kick of Redis
+  > ---> ^^.
+
+-- Write blog > Little time to think about this : later
+-- Trace log chat-agent : issue ReAct pattern
+
+- blog..... stop.
