@@ -38,7 +38,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 
 - [x] Strings: `SET`, `GET`, `INCR`, Expiration/TTL
-- [ ] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`)
+- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`)
 - [ ] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
 - [ ] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
 - [ ] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
