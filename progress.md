@@ -11,7 +11,9 @@
 - [x] Revise: Why and Strings: `SET`, `GET`, `INCR`, Expiration/TTL
 - [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): FIFO 0912
 - [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): LIFO 0914
-- [] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): How redis query item in list, index?
+- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): How redis query item in list, index?
+  > Revise
+  > redis query item in list, index
 - [] Node event loop and single thread > Redis related?
 
 ---
