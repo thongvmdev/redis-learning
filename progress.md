@@ -14,7 +14,13 @@
 - [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): How redis query item in list, index?
   > Revise
   > redis query item in list, index
-- [] Node event loop and single thread > Redis related?
+
+**0919**
+
+- [x] Revise: phase 2 and LISTS use cases
+- [x] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
+
+> - [] Node event loop and single thread > Redis related?
 
 ---
 
@@ -39,7 +45,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 
 - [x] Strings: `SET`, `GET`, `INCR`, Expiration/TTL
 - [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`)
-- [ ] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
+- [x] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
 - [ ] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
 - [ ] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
 - [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
