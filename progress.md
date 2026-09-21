@@ -17,10 +17,10 @@
 
 **0919**
 
-- [x] Revise: phase 2 and LISTS use cases
-- [x] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
+- [x] Revise: Hashes
+- [x] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
 
-> - [] Node event loop and single thread > Redis related?
+Blog claude session: claude --resume ba82b09d-1b8e-4027-b890-011550cb4018
 
 ---
 
@@ -46,9 +46,10 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [x] Strings: `SET`, `GET`, `INCR`, Expiration/TTL
 - [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`)
 - [x] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
-- [ ] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
+- [x] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
 - [ ] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
 - [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
+- [ ] Node event loop and single thread > Redis related?
 
 **Checkpoint:** cho 1 bài toán thực tế (user profile, giỏ hàng, cache category, bảng xếp hạng) → chọn đúng kiểu dữ liệu và giải thích được lý do.
 
