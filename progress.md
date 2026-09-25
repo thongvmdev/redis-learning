@@ -3,7 +3,7 @@
 > Giáo án gốc: [redis.md](./redis.md)
 > Cách dùng: tick `[x]` khi xong, điền ngày vào cột **Ngày xong**, ghi chú lại chỗ nào chưa vững để ôn phỏng vấn.
 
-**Bắt đầu:** 2026-09-10
+**Bắt đầu:** 2026-09-10 - 1 Month
 **Mục tiêu:** ứng dụng vào Family Finance (cache pipeline Weaviate, rate limit insight-chat, session/JWT) + đủ chiều sâu cho phỏng vấn senior/fullstack.
 
 # Note progress: Chương 2: Cấu trúc Dữ liệu cơ bản & Nâng cao
@@ -15,12 +15,10 @@
   > Revise
   > redis query item in list, index
 
-**0919**
+**0920 > about to 15**
 
-- [x] Revise: Hashes
-- [x] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
-
-Blog claude session: claude --resume ba82b09d-1b8e-4027-b890-011550cb4018
+- [x] Revise: SET
+- [x] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
 
 ---
 
@@ -47,7 +45,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`)
 - [x] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
 - [x] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
-- [ ] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
+- [x] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
 - [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
 - [ ] Node event loop and single thread > Redis related?
 
@@ -79,6 +77,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [ ] Pub/Sub: real-time messaging / chat
 - [ ] Redis Streams: event-driven, consumer group (so sánh nhanh với Kafka)
 - [ ] Lua Scripting: logic phức tạp nguyên khối (atomic ops)
+- [ ] Bull/BullMQ
 
 **Checkpoint:** viết được 1 Lua script atomic (ví dụ: rate limiter check-and-increment) và 1 demo Pub/Sub hoặc Stream.
 
@@ -104,18 +103,17 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 
 Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 
-- [ ] Tích hợp Redis vào Node.js/Next.js bằng `ioredis` (connection, singleton, error handling)
-- [ ] **Thực hành 1:** Cache-aside layer cho REST API — cache category list / kết quả search Weaviate (trước bước LLM judge trong retry-loop pipeline)
-  - [ ] Đo latency trước/sau khi cache
-  - [ ] Xử lý cache invalidation
+- [x] Tích hợp Redis vào Node.js/Next.js bằng `ioredis` (connection, singleton, error handling)
+- [x] **Thực hành 1:** Cache-aside layer cho REST API — cache category list / kết quả search Weaviate (trước bước LLM judge trong retry-loop pipeline)
+  - [x] Đo latency trước/sau khi cache
+  - [x] Xử lý cache invalidation
 - [ ] **Thực hành 2:** Rate Limiter cho insight-chat router (giới hạn query semantic/SQL mỗi user/phút)
   - [ ] Chọn thuật toán (fixed window / sliding window ZSet / token bucket)
   - [ ] Trả `429` + header `Retry-After`
 - [ ] **Thực hành 3:** Session & JWT token management (refresh token store, revoke/blacklist)
+- [ ] **Thực hành 4:** Vector search > User pref ff
 
 **Checkpoint:** Redis chạy thật trong Family Finance: latency pipeline search giảm, router có rate limit, session quản lý qua Redis.
-
-## Chương 7: Vector search > User pref ff
 
 ## **Ghi chú / câu hỏi còn thắc mắc:**
 
