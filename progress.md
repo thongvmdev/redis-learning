@@ -8,17 +8,17 @@
 
 # Note progress: Chương 2: Cấu trúc Dữ liệu cơ bản & Nâng cao
 
-- [x] Revise: Why and Strings: `SET`, `GET`, `INCR`, Expiration/TTL
-- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): FIFO 0912
-- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): LIFO 0914
-- [x] Lists: Queue & Stack (`LPUSH`, `RPOP`, `LRANGE`): How redis query item in list, index?
-  > Revise
-  > redis query item in list, index
+**0926 > 1510-1700**
 
-**0920 > about to 15**
+- [x] Revise: ZSET, Sets
+- [] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
+  > `Bitmaps` Next LN.
+  > Geospatial
+  > HyperLogLog
 
-- [x] Revise: SET
-- [x] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
+## PSY Note
+
+- Just read AI output > depress
 
 ---
 
@@ -47,7 +47,6 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [x] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
 - [x] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
 - [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
-- [ ] Node event loop and single thread > Redis related?
 
 **Checkpoint:** cho 1 bài toán thực tế (user profile, giỏ hàng, cache category, bảng xếp hạng) → chọn đúng kiểu dữ liệu và giải thích được lý do.
 
@@ -92,6 +91,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [ ] Replication: Master–Replica, read scaling
 - [ ] Redis Sentinel: failover tự động
 - [ ] Redis Cluster: sharding qua Hash Slots, hash tag `{}`
+- [ ] Node event loop and single thread > Redis related?
 
 **Checkpoint:** vẽ được sơ đồ HA và trả lời được câu hỏi phỏng vấn "Sentinel vs Cluster khác gì nhau, khi nào dùng cái nào?".
 
