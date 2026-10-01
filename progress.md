@@ -1,6 +1,7 @@
 # Redis Learning — Progress Tracking
 
 > Giáo án gốc: [redis.md](./redis.md)
+> Học qua use case thật: [LangGraph-Runtime-UseCases.md](./lessons/LangGraph-Runtime-UseCases.md) (10 bài + capstone, map vào Chương 2–6)
 > Cách dùng: tick `[x]` khi xong, điền ngày vào cột **Ngày xong**, ghi chú lại chỗ nào chưa vững để ôn phỏng vấn.
 
 **Bắt đầu:** 2026-09-10 - 1 Month
@@ -8,13 +9,16 @@
 
 # Note progress: Chương 2: Cấu trúc Dữ liệu cơ bản & Nâng cao
 
-**0926 > 1510-1700**
+##**0930**
 
-- [x] Revise: ZSET, Sets
-- [] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
-  > `Bitmaps` Next LN.
-  > Geospatial
-  > HyperLogLog
+- [] Redis Streams
+  > [x] Foundation
+  > `Use case in langgraph`
+
+**QA**
+
+- [x] BLPOP / Stream, Consumer Group diff > self explain.
+- [x] Self write full flow example
 
 ## PSY Note
 
@@ -46,7 +50,6 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [x] Hashes: lưu Object / User profile (`HSET`, `HGETALL`)
 - [x] Sets: dữ liệu không trùng lặp (`SADD`, `SINTER`)
 - [x] Sorted Sets (ZSet): leaderboard, sliding-window (`ZADD`, `ZRANGEBYSCORE`)
-- [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
 
 **Checkpoint:** cho 1 bài toán thực tế (user profile, giỏ hàng, cache category, bảng xếp hạng) → chọn đúng kiểu dữ liệu và giải thích được lý do.
 
@@ -74,9 +77,12 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 
 - [ ] Transactions: `MULTI`, `EXEC`, `WATCH` (optimistic locking)
 - [ ] Pub/Sub: real-time messaging / chat
-- [ ] Redis Streams: event-driven, consumer group (so sánh nhanh với Kafka)
-- [ ] Lua Scripting: logic phức tạp nguyên khối (atomic ops)
-- [ ] Bull/BullMQ
+      --> Improve noti feature for ff: stream or pub/sub
+
+- [x] Redis Streams: event-driven, consumer group (so sánh nhanh với Kafka)
+- [x] Lua Scripting: logic phức tạp nguyên khối (atomic ops)
+- [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
+- [] BullMQ: Queue/Worker > How bullMQ work behind the sense
 
 **Checkpoint:** viết được 1 Lua script atomic (ví dụ: rate limiter check-and-increment) và 1 demo Pub/Sub hoặc Stream.
 
@@ -107,11 +113,10 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [x] **Thực hành 1:** Cache-aside layer cho REST API — cache category list / kết quả search Weaviate (trước bước LLM judge trong retry-loop pipeline)
   - [x] Đo latency trước/sau khi cache
   - [x] Xử lý cache invalidation
-- [ ] **Thực hành 2:** Rate Limiter cho insight-chat router (giới hạn query semantic/SQL mỗi user/phút)
-  - [ ] Chọn thuật toán (fixed window / sliding window ZSet / token bucket)
-  - [ ] Trả `429` + header `Retry-After`
-- [ ] **Thực hành 3:** Session & JWT token management (refresh token store, revoke/blacklist)
-- [ ] **Thực hành 4:** Vector search > User pref ff
+- [x] **Thực hành 2:** Rate Limiter cho insight-chat router (giới hạn query semantic/SQL mỗi user/phút)
+  - [x] Chọn thuật toán (fixed window / sliding window ZSet / token bucket)
+  - [x] Trả `429` + header `Retry-After`
+- [] **Thực hành 4:** Vector search > User pref ff
 
 **Checkpoint:** Redis chạy thật trong Family Finance: latency pipeline search giảm, router có rate limit, session quản lý qua Redis.
 

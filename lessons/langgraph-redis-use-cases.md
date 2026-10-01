@@ -1,0 +1,57 @@
+Mình đang soi bên trong image `langchain/langgraphjs-api:24` để xem runtime thực sự dùng Redis vào việc gì. Thu hẹp phạm vi tìm vào `/api`.
+
+Đã tìm ra module `redis.pyc` trong runtime Postgres edition — đang đọc nó và phần queue để xác định từng use case.
+
+Phần lớn logic runs/threads nằm trong binary Go `core-api-grpc` — đang trích chuỗi Redis từ binary đó.
+
+# LangGraphJS dùng Redis cho việc gì
+
+**Tóm lại:** ở `ff`, LangGraph chỉ đụng tới Redis khi chạy **prod**, qua container `ff-redis` (biến `REDIS_URI`). Còn `pnpm dev:agent` (`langgraphjs dev`) chạy toàn bộ trong RAM nên không cần Redis. Dữ liệu bền (thread, run, checkpoint, Store) đều nằm ở **Postgres**. Redis chỉ lo **điều phối** giữa API và worker, và giữ **dữ liệu tạm** (event stream, heartbeat, lock).
+
+Mình không lấy từ docs mà soi thẳng image `langchain/langgraphjs-api:24` (langgraph-api 0.12.3). Runtime này đóng mã: phần lõi là binary Go `core-api-grpc` (package `core/internal/pubsub/redis`), cộng thêm `langgraph_runtime_postgres/redis.py`. **Tên key và lệnh Redis** mình lấy nguyên văn từ binary và bytecode. Còn **ý nghĩa** từng cái là mình suy ra từ tên hàm và các đoạn Lua, chưa được xác nhận.
+
+## Các use case
+
+| #   | Use case                                                       | Key (lấy từ binary)                                                                       | Cấu trúc / lệnh                                                                                                                                            | Liên quan tới code `ff`                                                                                                                                                                                                                                                                                                                                                             |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Hàng đợi run**: API đưa run vào hàng đợi, worker lấy ra chạy | `run:{queue}`, `run:{queue}:threads`                                                      | LIST (`LPUSH`/`BLPOP`) + ZSET (`ZRANGEBYSCORE`). Hàm `claimNextPendingRunPerThread` đảm bảo mỗi thread chỉ chạy 1 run tại một thời điểm                    | Chat dùng `multitaskStrategy: "enqueue"` ([useChatStream.ts:158](packages/chat-core/src/useChatStream.ts:158)): gửi tin khi run cũ chưa xong thì run mới được xếp vào hàng đợi này                                                                                                                                                                                                  |
+| 2   | **Stream event từ worker về client**                           | `thread:%s:run:%s:stream`                                                                 | Không resumable thì dùng **Pub/Sub**. Resumable thì dùng **Redis Stream**: `XADD` khi ghi, `XRANGE` để phát lại. TTL lấy từ `RESUMABLE_STREAM_TTL_SECONDS` | Cả chat lẫn PDF import đều bật `streamResumable: true` + `onDisconnect: "continue"` ([usePdfImportStream.ts:647](<apps/web/src/app/(control-panel)/imports/pdf/components/PdfImportStream/usePdfImportStream.ts:647>)). Nhờ Redis Stream mà client reconnect được bằng `Last-Event-ID` (header này đã được cho qua trong [\_proxy.ts:99](apps/web/src/app/api/mobile/_proxy.ts:99)) |
+| 3   | **Stream theo thread và cache replay**                         | `thread:%s:cache`, `run_offsets`                                                          | Stream, dùng khi join lại một thread đang chạy (`SubscribeThread`, `replayThreadCachedEvents`)                                                             | Web PDF import có `reconnectOnMount: true`                                                                                                                                                                                                                                                                                                                                          |
+| 4   | **Điều khiển run**: cancel / interrupt / rollback              | `thread:{thread_id}:run:{run_id}:control`                                                 | Pub/Sub channel, kèm Lua `controlSignalLua`; worker lắng nghe qua `listenForCancellation`                                                                  | Khi bấm Stop hoặc gọi `runs.cancel`, tín hiệu đi qua channel này                                                                                                                                                                                                                                                                                                                    |
+| 5   | **Heartbeat, kiểm tra worker còn sống**                        | `run:%s:running`                                                                          | Key có TTL, được gia hạn định kỳ (`heartbeat`, `CheckAlive`). Worker chết thì key hết hạn, sweeper phát hiện và đưa run vào hàng đợi lại                   | `BG_JOB_HEARTBEAT`, `HEARTBEAT_TIMEOUT_SECONDS`                                                                                                                                                                                                                                                                                                                                     |
+| 6   | **Đếm số lần retry**                                           | `run:%s:attempt`                                                                          | Lua `DECRBY` + `PTTL` (thao tác atomic)                                                                                                                    | Giới hạn bởi `BG_JOB_MAX_RETRIES`                                                                                                                                                                                                                                                                                                                                                   |
+| 7   | **Distributed lock**                                           | `migration:{lock}`, `run:{sweep}`, `thread:{sweep}`, `store:{sweep}`, `license_key_lock:` | Lock + `lockReleaseLua` (chỉ xoá nếu mình là chủ lock). Thêm các marker `last_sweep` để không sweep quá dày                                                | Nhiều replica boot cùng lúc thì chỉ một con chạy migration hoặc sweep TTL                                                                                                                                                                                                                                                                                                           |
+| 8   | **Cache thống kê run**                                         | `stats_cache`, `stats_lock`                                                               | String + lock, TTL `RUN_STATS_CACHE_SECONDS` (mặc định 60s)                                                                                                | —                                                                                                                                                                                                                                                                                                                                                                                   |
+| 9   | **Rate limit publish stream**                                  | `rate_limit_key`                                                                          | Lua có `TIME` + `GET tat`, tức thuật toán **GCRA** (thư viện `go-redis/redis_rate`)                                                                        | `rateLimitStreamPublish`, chặn một run spam event (suy luận)                                                                                                                                                                                                                                                                                                                        |
+| 10  | **Stream của subgraph**                                        | channel riêng (`subgraphStreamer`)                                                        | Pub/Sub                                                                                                                                                    | Event từ subgraph khi bật `streamSubgraphs`                                                                                                                                                                                                                                                                                                                                         |
+
+## Những gì LangGraph không để ở Redis
+
+Checkpoint, state của `interrupt()` trong HITL, thread, run metadata và Store đều ở Postgres (`POSTGRES_URI`). Nếu `ff-redis` bị mất dữ liệu, bạn mất event stream đang bay, hàng đợi và heartbeat, tức là run có thể bị treo hoặc bị chạy lại. Lịch sử hội thoại vẫn còn nguyên.
+
+Vì vậy compose prod đặt `ff-redis` là `appendonly yes` và để policy mặc định `noeviction`, đồng thời tách riêng `ff-redis-cache` (`allkeys-lru`) cho API và cho rate limit phase 6. Tách như vậy là đúng.
+
+JS còn có package riêng `@langchain/langgraph-checkpoint-redis` để lưu checkpointer/Store thẳng vào Redis. `ff` không dùng package này và cũng không cần.
+
+## Những khái niệm Redis bạn có thể học từ đây
+
+- **LIST dùng làm blocking queue** (`BLPOP`) và **ZSET dùng để xếp lịch** (score là thời điểm).
+- **Pub/Sub và Streams**: Pub/Sub gửi xong là mất, không phát lại được. Streams có ID và `XRANGE` nên phát lại được, cái giá là tốn bộ nhớ và cần TTL. LangGraph dùng cả hai tuỳ theo cờ `resumable`.
+- **Heartbeat bằng TTL**: sống thì gia hạn, chết thì key tự hết hạn.
+- **Lock an toàn**: `SET NX PX`, và khi release thì dùng Lua kiểm tra token trước khi xoá.
+- **Hash tag `{...}` trong Redis Cluster**: `run:{queue}` và `run:{queue}:threads` rơi vào cùng một slot, nhờ đó Lua script và multi-key chạy được trên cluster.
+- **GCRA rate limit**: khác kiểu sliding window bằng ZSET mà bạn tự viết ở phase 6.
+
+## Xem trực tiếp trên prod
+
+```bash
+docker exec ff-redis redis-cli --scan --count 100 | head -50
+```
+
+```bash
+docker exec ff-redis redis-cli MONITOR
+```
+
+`MONITOR` rất nặng, chỉ bật vài giây trong lúc chạy 1 chat rồi Ctrl+C. Làm vậy bạn sẽ thấy đúng các key `run:*` và `thread:*:run:*:stream` ở trên xuất hiện.
+
+Nếu muốn, mình có thể lưu bản này thành `docs/plans/redis-caching-phases/langgraph-runtime-redis.md` hoặc viết thành một bài trong series Redis trên blog.
