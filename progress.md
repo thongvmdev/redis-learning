@@ -9,20 +9,16 @@
 
 # Note progress: Chương 2: Cấu trúc Dữ liệu cơ bản & Nâng cao
 
-##**0930**
+##**1005 - IP PubSub**
 
-- [] Redis Streams
-  > [x] Foundation
-  > `Use case in langgraph`
+- [x] Revise: Lists > real use cases / compare with Stream
+- [x] Pub/sub: foundation
+- [x] Explore use case Stream again / Compare with Pub/Sub > when to choose which one
 
-**QA**
+  > [x] explore case with DB: `/Users/james.vominhthong/Documents/Learn/Redis/Untitled-1.js`
 
-- [x] BLPOP / Stream, Consumer Group diff > self explain.
-- [x] Self write full flow example
-
-## PSY Note
-
-- Just read AI output > depress
+- Note: need to learn even loop
+- Note: Force > read, fast understand > stress
 
 ---
 
@@ -76,9 +72,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 
 - [ ] Transactions: `MULTI`, `EXEC`, `WATCH` (optimistic locking)
-- [ ] Pub/Sub: real-time messaging / chat
-      --> Improve noti feature for ff: stream or pub/sub
-
+- [x] Pub/Sub: real-time messaging / chat
 - [x] Redis Streams: event-driven, consumer group (so sánh nhanh với Kafka)
 - [x] Lua Scripting: logic phức tạp nguyên khối (atomic ops)
 - [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn

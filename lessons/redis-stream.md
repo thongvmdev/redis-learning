@@ -4,6 +4,23 @@ Chuyển sang **Redis Streams** — cấu trúc dữ liệu mới nhất và ph�
 
 Một log các sự kiện (event log), mỗi entry có 1 **ID duy nhất tăng dần theo thời gian**, không bao giờ bị ghi đè — giống mô hình của Kafka nhưng gọn nhẹ hơn, chạy ngay trong Redis.
 
+### Vì sao gọi là "Stream"?
+
+Vì nó mô hình hoá dữ liệu như một **dòng sự kiện liên tục, chỉ thêm vào cuối, có thứ tự theo thời gian**, chứ không phải tập dữ liệu tĩnh.
+
+- **Append-only, có thứ tự**: mỗi `XADD` thêm entry vào cuối, ID dạng `<timestamp-ms>-<seq>` luôn tăng dần → một log chảy theo một hướng (thời gian).
+- **Lưu sự kiện, không lưu trạng thái**: `String/Hash/Set` lưu _giá trị hiện tại_; Stream lưu _chuỗi những gì đã xảy ra_.
+- **Producer đẩy vào, consumer đọc theo dòng**: consumer đứng "hạ lưu", đọc tiếp từ vị trí đã đọc; với `BLOCK` thì chờ cho tới khi có dữ liệu mới chảy đến.
+- **Đọc nhiều lần, nhiều hướng**: entry vẫn còn sau khi đọc, mỗi consumer group có con trỏ vị trí riêng (như nhiều người đứng ở các điểm khác nhau bên bờ sông).
+
+Ý tưởng lấy cảm hứng từ commit log của Kafka.
+
+| | List | Pub/Sub | Stream |
+|---|---|---|---|
+| Còn lại sau khi đọc | Không (pop là mất) | Không (fire-and-forget) | **Có** |
+| Đọc lại từ vị trí cũ | Không | Không | **Có** (theo ID) |
+| Consumer group, ack | Không | Không | **Có** |
+
 ## XADD — thêm entry vào stream
 
 ```
@@ -68,87 +85,115 @@ XCLAIM orders:stream workers worker2 60000 1732500000000-0   # worker2 "giành" 
 ## Ví dụ thực tế: Order Processing với độ tin cậy cao (không mất event)
 
 ```js
-const express = require('express')
-const { createClient } = require('redis')
+const STREAM_KEY = 'orders:stream'
+const GROUP_NAME = 'order-workers'
+const CLAIM_IDLE_MS = 30_000 // pending longer than this = the worker holding it is presumed dead
 
-const app = express()
-app.use(express.json())
+const db = {
+  async insertOrder(orderId, amount) {
+    console.log(
+      `[DB] INSERT INTO processed_orders (order_id, amount) VALUES (${orderId}, ${amount}) ` +
+        `ON CONFLICT (order_id) DO NOTHING`, // idempotent — safe if an entry gets processed twice
+    )
+  },
+}
 
-const redisClient = createClient({ url: 'redis://localhost:6379' })
-redisClient.on('error', (err) => console.error('Redis Client Error', err))
-;(async () => {
-  await redisClient.connect()
-  try {
-    await redisClient.xGroupCreate('orders:stream', 'order-workers', '0', {
-      MKSTREAM: true,
-    })
-  } catch (e) {
-    // group đã tồn tại từ trước -> bỏ qua lỗi "BUSYGROUP"
-  }
-})()
-
-// API nhận order, đẩy vào stream
+// --- API: push orders onto the stream ---
 app.post('/orders', async (req, res) => {
   const { orderId, amount } = req.body
-
-  const entryId = await redisClient.xAdd('orders:stream', '*', {
-    order_id: orderId,
+  const entryId = await redisClient.xAdd(STREAM_KEY, '*', {
+    order_id: String(orderId),
     amount: String(amount),
     status: 'created',
   })
-
   res.status(202).json({ message: 'Order queued', entryId })
 })
 
-app.listen(3000, () => console.log('API running on port 3000'))
-```
+app.get('/orders/stream/status', async (req, res) => {
+  const length = await redisClient.xLen(STREAM_KEY)
+  const pending = await redisClient.xPending(STREAM_KEY, GROUP_NAME)
+  res.json({ totalEntries: length, pendingCount: pending.pending })
+})
 
-```js
-// worker.js
-const { createClient } = require('redis')
-
-const redisClient = createClient({ url: 'redis://localhost:6379' })
-redisClient.on('error', (err) => console.error('Redis Client Error', err))
-
-const CONSUMER_NAME = `worker-${process.pid}`
-
-async function processOrder(entry) {
-  console.log(`Processing order ${entry.message.order_id}...`)
-  // TODO: logic xử lý đơn hàng thật (trừ kho, gọi payment...)
-}
-
+// --- Worker: one or many instances running in parallel ---
 async function startWorker() {
-  await redisClient.connect()
+  const consumerName = `worker-${process.pid}`
+  let running = true
+  process.on('SIGTERM', () => {
+    running = false
+  }) // graceful shutdown
 
-  while (true) {
+  while (running) {
     const results = await redisClient.xReadGroup(
-      'order-workers',
-      CONSUMER_NAME,
-      [{ key: 'orders:stream', id: '>' }],
+      GROUP_NAME,
+      consumerName,
+      [{ key: STREAM_KEY, id: '>' }],
       { COUNT: 1, BLOCK: 5000 },
     )
-
-    if (!results) continue // timeout, không có entry mới, lặp lại chờ tiếp
+    if (!results) continue
 
     for (const stream of results) {
       for (const entry of stream.messages) {
-        try {
-          await processOrder(entry)
-          await redisClient.xAck('orders:stream', 'order-workers', entry.id)
-        } catch (err) {
-          console.error(
-            `Xử lý entry ${entry.id} thất bại, sẽ nằm trong PEL để retry`,
-            err,
-          )
-          // Không ACK -> entry vẫn pending, có thể XCLAIM lại sau
-        }
+        await handleEntry(redisClient, entry)
       }
     }
   }
 }
 
-startWorker()
+async function handleEntry(redisClient, entry) {
+  const { order_id, amount } = entry.message
+  try {
+    await db.insertOrder(order_id, amount)
+    await redisClient.xAck(STREAM_KEY, GROUP_NAME, entry.id) // only ACK after success
+  } catch (err) {
+    console.error(
+      `Entry ${entry.id} failed, left un-acked for retry/claim`,
+      err,
+    )
+  }
+}
+
+// --- Recovery job: periodically reclaims stale pending entries ---
+async function startRecoveryJob() {
+  setInterval(async () => {
+    const result = await redisClient.xAutoClaim(
+      STREAM_KEY,
+      GROUP_NAME,
+      'recovery-job',
+      CLAIM_IDLE_MS,
+      '0',
+    )
+    for (const entry of result.messages) {
+      await handleEntry(redisClient, entry) // reprocess and ACK
+    }
+  }, 10_000)
+}
 ```
+
+### Giải thích `xReadGroup` trong worker
+
+```js
+redisClient.xReadGroup(
+  GROUP_NAME, // consumer group (đã tạo bằng XGROUP CREATE)
+  consumerName, // định danh worker; các worker cùng group chia nhau message
+  [{ key: STREAM_KEY, id: '>' }],
+  { COUNT: 1, BLOCK: 5000 },
+)
+```
+
+| Tham số | Ý nghĩa |
+| --- | --- |
+| `id: '>'` | Chỉ lấy message **mới, chưa giao cho consumer nào** trong group |
+| `COUNT: 1` | Mỗi lần lấy tối đa 1 message |
+| `BLOCK: 5000` | Chưa có message thì chờ tối đa 5s; hết giờ trả về `null` (nên có `if (!results) continue`) |
+
+Khi nhận message: Redis đưa nó vào **PEL** của consumer và tăng `last-delivered-id` của group. Message chỉ rời PEL khi `XACK`.
+
+Lưu ý:
+
+- `id: '0'` thay vì `'>'` → đọc lại các message **đã giao nhưng chưa ACK** của chính consumer này (hữu ích khi restart).
+- `BLOCK` chiếm connection trong lúc chờ → nên dùng client riêng (`redisClient.duplicate()`) cho worker.
+- `BLOCK: 0` = chờ vô hạn.
 
 **Vì sao dùng Stream thay vì List ở đây:** nếu worker crash giữa lúc xử lý order (vd mất điện, container bị kill), order đó **không biến mất** — vẫn nằm trong Pending Entries List của group `order-workers`, một worker khác (hoặc chính worker đó sau khi restart) có thể dùng `XCLAIM`/`XAUTOCLAIM` để lấy lại và xử lý tiếp, đảm bảo **at-least-once delivery** — điều List không đảm bảo được.
 
