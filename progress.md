@@ -76,7 +76,7 @@ Trạng thái: ⬜ · Ngày bắt đầu: \_**\_ · Ngày xong: \_\_**
 - [x] Redis Streams: event-driven, consumer group (so sánh nhanh với Kafka)
 - [x] Lua Scripting: logic phức tạp nguyên khối (atomic ops)
 - [ ] Geospatial, Bitmaps, HyperLogLog: tọa độ, điểm danh, đếm unique dữ liệu lớn
-- [] BullMQ: Queue/Worker > How bullMQ work behind the sense
+- [x] BullMQ: Queue/Worker > How bullMQ work behind the sense
 
 **Checkpoint:** viết được 1 Lua script atomic (ví dụ: rate limiter check-and-increment) và 1 demo Pub/Sub hoặc Stream.
 
